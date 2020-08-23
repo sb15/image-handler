@@ -52,6 +52,9 @@ class ImageHandler
     /** @var LoggerInterface */
     private $logger;
 
+    /** @var string */
+    private $fallbackImage;
+
     /**
      * ImageHandler constructor.
      * @param string $rootDir
@@ -71,10 +74,22 @@ class ImageHandler
 
     /**
      * @param LoggerInterface $logger
+     * @return ImageHandler
      */
-    public function setLogger(LoggerInterface $logger): void
+    public function setLogger(LoggerInterface $logger): ImageHandler
     {
         $this->logger = $logger;
+        return $this;
+    }
+
+    /**
+     * @param string $fallbackImage
+     * @return ImageHandler
+     */
+    public function setFallbackImage(string $fallbackImage): ImageHandler
+    {
+        $this->fallbackImage = $fallbackImage;
+        return $this;
     }
 
     /**
@@ -90,6 +105,10 @@ class ImageHandler
         $this->requestUrl = $requestUrl;
 
         $parts = explode('/', $requestUrl);
+        if (count($parts) < 4) {
+            $this->logger->info('Invalid request url');
+            throw new Exception('Invalid request url');
+        }
         $imageUrl = $parts[count($parts) - 1];
         $this->encryptedImageUrl = $imageUrl;
 
@@ -180,7 +199,8 @@ class ImageHandler
      */
     public function getPrefix(string $name): string
     {
-        return $name[0] . '/' . $name[1];
+        $length = strlen($name) - 5;
+        return $name[$length-1] . '/' . $name[$length];
     }
 
     /**
@@ -274,7 +294,20 @@ class ImageHandler
     public function failed(): void
     {
         $this->logger->info('Sent fallback image');
+        if ($this->fallbackImage) {
 
+            if (is_file($this->fallbackImage)) {
+                header('Content-type: image/jpg');
+                readfile($this->fallbackImage);
+                return;
+            }
+
+            $this->logger->info("Fallback image {$this->fallbackImage} not found");
+        }
+
+        $this->logger->info('Sent default fallback image');
+
+        header('Content-type: image/gif');
         echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
     }
 
@@ -386,4 +419,15 @@ class ImageHandler
         $this->logger->error("Transformation {$transformationString} not found");
         throw new Exception('Transformation not found');
     }
+
+    /**
+     * @param bool $useCache
+     * @return ImageHandler
+     */
+    public function setUseCache(bool $useCache): ImageHandler
+    {
+        $this->useCache = $useCache;
+        return $this;
+    }
+
 }
