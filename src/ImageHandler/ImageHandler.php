@@ -273,6 +273,8 @@ class ImageHandler
 
             $this->logger->info('Sent file content');
 
+            $imageInfo = getimagesize($destinationFile);
+            header("Content-type: {$imageInfo['mime']}");
             readfile($destinationFile);
 
             $this->cleanUp($destinationFile);
