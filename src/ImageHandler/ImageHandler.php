@@ -280,10 +280,15 @@ class ImageHandler
     }
 
     /**
-     * @param string $filename
+     * @param string|null $filename
      */
-    public function cleanUp(string $filename): void
+    public function cleanUp(?string $filename): void
     {
+        if (!$filename) {
+            $this->logger->info("No cleanup file");
+            return;
+        }
+
         if (unlink($filename)) {
             $this->logger->info("File {$filename} deleted");
         } else {
