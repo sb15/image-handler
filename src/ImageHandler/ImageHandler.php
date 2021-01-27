@@ -287,6 +287,11 @@ class ImageHandler
     public function cleanUp(?string $filename): void
     {
         if (!$filename) {
+            $this->logger->info("No cleanup");
+            return;
+        }
+
+        if (!is_file($filename)) {
             $this->logger->info("No cleanup file");
             return;
         }
