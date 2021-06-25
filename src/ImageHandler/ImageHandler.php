@@ -12,6 +12,7 @@ class ImageHandler
 {
 
     public const CIPHER_AES_256_CFB = 'aes-256-cfb';
+    public const CDN_DOMAIN = 'IMAGE_HANDLER_CDN';
 
     /** @var string */
     private $imageUrl;
@@ -55,6 +56,9 @@ class ImageHandler
     /** @var string */
     private $fallbackImage;
 
+    /** @var string */
+    private $cdnDomain = null;
+
     /**
      * ImageHandler constructor.
      * @param string $rootDir
@@ -79,6 +83,16 @@ class ImageHandler
     public function setLogger(LoggerInterface $logger): ImageHandler
     {
         $this->logger = $logger;
+        return $this;
+    }
+
+    /**
+     * @param string $cdnDomain
+     * @return $this
+     */
+    public function setCdnDomain(string $cdnDomain): ImageHandler
+    {
+        $this->cdnDomain = $cdnDomain;
         return $this;
     }
 
@@ -116,6 +130,10 @@ class ImageHandler
 
         $imageUrl = pathinfo($imageUrl, PATHINFO_FILENAME);
         $imageUrl = $this->decrypt($imageUrl);
+
+        if ($this->cdnDomain && parse_url($imageUrl, PHP_URL_HOST) === self::CDN_DOMAIN) {
+            $imageUrl = str_replace(self::CDN_DOMAIN, $this->cdnDomain, $imageUrl);
+        }
 
         if (!parse_url($imageUrl, PHP_URL_PATH)) {
             $this->logger->error('Invalid input file ' . $imageUrl);
