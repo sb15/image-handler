@@ -238,6 +238,40 @@ class ImageHandler
         return $this->getPrefix($name) . '/' . $name;
     }
 
+    public function downloadFileViaCurl(string $sourceUrl, string $destinationFilename): bool
+    {
+        $file = fopen($destinationFilename, 'wb+');
+
+        $ch = curl_init();
+
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $sourceUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_AUTOREFERER => true,
+            CURLOPT_FILE => $file,
+        ]);
+
+        curl_exec($ch);
+        $curlInfo = curl_getinfo($ch);
+        curl_close($ch);
+        fclose($file);
+
+        $contentType = explode('/', $curlInfo['content_type'])[0];
+        if ($curlInfo['http_code'] !== 200 || $contentType !== 'image') {
+            unlink($destinationFilename);
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @param string $destinationFile
      * @param array<int, string> $transformationParams
@@ -251,6 +285,7 @@ class ImageHandler
                 $this->logger->info("Copy tmp file to {$destinationFile} success");
             } else {
                 $this->logger->error("Copy tmp file to {$destinationFile} failed");
+                throw new Exception("Copy tmp file to {$destinationFile} failed");
             }
             return;
         }
@@ -346,7 +381,7 @@ class ImageHandler
      */
     public function downloadFile(): void
     {
-        if (!copy($this->imageUrl, $this->tmpFile)) {
+        if (!$this->downloadFileViaCurl($this->imageUrl, $this->tmpFile)) {
             $this->logger->error("Copy {$this->imageUrl} to {$this->tmpFile} failed");
             throw new Exception("Copy {$this->imageUrl} to {$this->tmpFile} failed");
         }
