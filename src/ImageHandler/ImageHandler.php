@@ -263,7 +263,10 @@ class ImageHandler
         curl_close($ch);
         fclose($file);
 
-        $contentType = explode('/', $curlInfo['content_type'])[0];
+        $contentType = '';
+        if ($curlInfo['content_type']) {
+            $contentType = explode('/', $curlInfo['content_type'])[0];
+        }
         if ($curlInfo['http_code'] !== 200 || $contentType !== 'image') {
             unlink($destinationFilename);
             return false;
